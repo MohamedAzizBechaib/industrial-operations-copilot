@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:16
+    container_name: industrial-copilot-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: industrial_copilot
+      POSTGRES_USER: copilot
+      POSTGRES_PASSWORD: copilot_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U copilot -d industrial_copilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: industrial-copilot-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://copilot:copilot_dev_password@db:5432/industrial_copilot
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
